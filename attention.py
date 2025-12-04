@@ -51,6 +51,33 @@ def multi_head_attention(x, n_heads, d_model, d_k, d_v):
     return output
 
 
+def causal_attention(x, W_Q, W_K, W_V):
+
+    """
+    Causal attention(masked attention)
+    --> This is used to prevent the model from attending to future tokens.
+    """
+    Q = x @ W_Q
+    K = x @ W_K
+    V = x @ W_V
+
+    scores = Q @ K.T
+    d_k = K.shape[-1]
+    scaled_scores = scores / np.sqrt(d_k)
+
+    # Build causal mask
+    seq_len = x.shape[0]
+    mask = np.triu(np.ones((seq_len, seq_len)), k=1).astype(bool)
+
+    # Apply mask
+    scaled_scores = scaled_scores.copy()
+    scaled_scores[mask] = -1e9   # or -np.inf
+
+    attention_weights = softmax(scaled_scores)
+    output = attention_weights @ V
+    
+    return output, attention_weights
+
 def positional_encoding(seq_len, d_model):
     """
     Sinusoidal positional encoding
